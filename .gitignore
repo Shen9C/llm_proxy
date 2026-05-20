@@ -43,3 +43,5 @@ env/
 .coverage
 htmlcov/
 *.vhdx
+*.ico
+ubuntu-26.04-backup.tar
