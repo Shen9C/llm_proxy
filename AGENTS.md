@@ -4,10 +4,12 @@
 
 ## Project Context
 小米 MiMo LLM 本地中转代理项目，项目结构：
-- `xm_proxy.py` — 核心代理脚本，包含 HTTP 代理服务器、模型映射、日志系统、缓存系统
-- `start_xm_proxy.bat` — 交互式启动脚本，支持环境变量读取、超时自动选择
+- `xm_proxy_v3.0.py` — 核心代理脚本，包含 HTTP 代理服务器、模型映射、日志系统、缓存系统
+- `mimo_common.py` — 公共模块（缓存、配置、指标）
+- `start_xm_proxy_v3.0.bat` — 交互式启动脚本，支持环境变量读取、超时自动选择
 - `app.log` — 日志文件（自动轮转，最大 50MB，只保留 1 个备份文件）
 - `mimo_cache` — 缓存文件（基于 shelve 的持久化缓存）
+- `skills/` — SKILLS 目录，存放项目规范和开发指南
 
 ## Core Work Principles
 1. Think before acting. Read existing files before writing code.（行动前先思考，写代码前先阅读现有文件。）
@@ -37,6 +39,9 @@
 2. When the user requests a specific skill or template, apply it instead of the defaults.（当用户请求特定技能时，优先使用该技能。）
 
 ## SKILLS
+### mimo-proxy
+MiMo LLM 本地中转代理项目规范。当处理缓存系统、流式响应、配置管理、监控诊断、安全规范或性能优化相关任务时调用此 SKILL。详见 `skills/mimo-proxy/SKILL.md`。
+
 ### TRAE-code-review
 用于执行代码审查任务。适用于审查合并请求、代码差异，并提供关于代码质量、正确性和最佳实践的结构化反馈。
 
