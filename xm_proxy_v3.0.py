@@ -16,13 +16,19 @@ import http.client
 import socket
 import hashlib
 import threading
+import os
 from functools import wraps
 from contextlib import closing
 from urllib.parse import urlparse
 from socketserver import ThreadingMixIn
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.request import Request, urlopen
+from urllib.request import Request, urlopen, ProxyHandler, build_opener
 from urllib.error import HTTPError
+
+os.environ["NO_PROXY"] = "*"
+os.environ["http_proxy"] = ""
+os.environ["https_proxy"] = ""
+opener = build_opener(ProxyHandler({}))
 
 from mimo_common import (
     LISTEN_PORT, MIMO_BASE_URL, MIMO_API_KEY, CACHE_FILE, DEBUG,
@@ -189,9 +195,12 @@ def pooled_request(url, body, headers):
 # ==================== HTTP 请求处理 ====================
 class ProxyHandler(BaseHTTPRequestHandler):
     def do_POST(self):
-        with request_semaphore:
-            content_length = int(self.headers.get("Content-Length", 0))
-        raw_body = self.rfile.read(content_length)
+        try:
+            with request_semaphore:
+                content_length = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(content_length)
+        except (ConnectionAbortedError, ConnectionResetError, OSError):
+            return
 
         if self.path == "/config":
             try:
@@ -287,7 +296,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         try:
             req = Request(target_url, data=json.dumps(req_body).encode(),
                           headers=headers, method="POST")
-            with urlopen(req, timeout=timeout) as resp:
+            with opener.open(req, timeout=timeout) as resp:
                 status_code = resp.getcode()
                 resp_data = json.loads(resp.read())
         except HTTPError as e:
@@ -349,7 +358,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         try:
             req = Request(target_url, data=json.dumps(req_body).encode(),
                           headers=headers, method="POST")
-            with closing(urlopen(req, timeout=timeout)) as resp:
+            with closing(opener.open(req, timeout=timeout)) as resp:
                 self.send_response(200)
                 self.send_header("Content-Type", "text/event-stream")
                 self.send_header("Cache-Control", "no-cache")
@@ -519,8 +528,9 @@ def main():
     print(f"   连接池    : 最大 {MAX_CONNECTIONS} 连接，超时 {CONNECTION_TIMEOUT}秒")
     print(f"   流式超时  : {STREAM_TIMEOUT}秒")
     print(f"   并发请求  : 已启用 (ThreadingMixIn)")
-    print(f"   请将 Base URL 设置为: http://localhost:{LISTEN_PORT}/v1\n")
-    server = ThreadedHTTPServer(("127.0.0.1", LISTEN_PORT), ProxyHandler)
+    print(f"   请将 Base URL 设置为: http://localhost:{LISTEN_PORT}/v1")
+    print(f"   WSL 访问地址: http://0.0.0.0:{LISTEN_PORT}/v1")
+    server = ThreadedHTTPServer(("0.0.0.0", LISTEN_PORT), ProxyHandler)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

@@ -22,16 +22,22 @@ from collections import OrderedDict
 
 # ==================== 配置常量 ====================
 LISTEN_PORT = int(os.environ.get("MIMO_PROXY_PORT", 8765))
-MIMO_BASE_URL = os.environ.get("MIMO_BASE_URL", "https://api.xiaomimimo.com")
 MIMO_API_KEY = os.environ.get("MIMO_API_KEY", "")
+MIMO_BASE_URL = os.environ.get("MIMO_BASE_URL", "")
 CACHE_FILE = os.environ.get("MIMO_CACHE_FILE", "./mimo_cache")
 DEBUG = os.environ.get("MIMO_PROXY_DEBUG", "0") == "1"
+
+if not MIMO_BASE_URL:
+    if MIMO_API_KEY.startswith("tp-"):
+        MIMO_BASE_URL = "https://token-plan-cn.xiaomimimo.com"
+    else:
+        MIMO_BASE_URL = "https://api.xiaomimimo.com"
 
 MAX_CONNECTIONS = int(os.environ.get("MIMO_MAX_CONNECTIONS", "10"))
 CONNECTION_TIMEOUT = int(os.environ.get("MIMO_CONNECTION_TIMEOUT", "30"))
 STREAM_TIMEOUT = int(os.environ.get("MIMO_STREAM_TIMEOUT", "600"))
 
-FALLBACK_STRATEGY = os.environ.get("MIMO_FALLBACK_STRATEGY", "strip")
+FALLBACK_STRATEGY = os.environ.get("MIMO_FALLBACK_STRATEGY", "strip").strip()
 
 MODEL_MAPPING = {
     "mimo-v2-flash": os.environ.get("MIMO_TARGET_MODEL", "mimo-v2.5-pro"),
@@ -240,8 +246,14 @@ class ConfigManager:
     def reload_from_env(self):
         with self.lock:
             self.config['LISTEN_PORT'] = int(os.environ.get("MIMO_PROXY_PORT", 8765))
-            self.config['MIMO_BASE_URL'] = os.environ.get("MIMO_BASE_URL", "https://api.xiaomimimo.com")
             self.config['MIMO_API_KEY'] = os.environ.get("MIMO_API_KEY", "")
+            base_url = os.environ.get("MIMO_BASE_URL", "")
+            if not base_url:
+                if self.config['MIMO_API_KEY'].startswith("tp-"):
+                    base_url = "https://token-plan-cn.xiaomimimo.com"
+                else:
+                    base_url = "https://api.xiaomimimo.com"
+            self.config['MIMO_BASE_URL'] = base_url
             self.config['CACHE_FILE'] = os.environ.get("MIMO_CACHE_FILE", "./mimo_cache")
             self.config['DEBUG'] = os.environ.get("MIMO_PROXY_DEBUG", "0") == "1"
             self.config['FALLBACK_STRATEGY'] = os.environ.get("MIMO_FALLBACK_STRATEGY", "strip")
